@@ -2,5 +2,6 @@
 
 !*.c
 !makefile
+!test.py
 
 !.gitignore
