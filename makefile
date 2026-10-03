@@ -3,7 +3,7 @@ CFLAGS=-g3 -O0
 
 hw1: checkpoint
 
-checkpoint: ckpt.c libckpt.so
+checkpoint: ckpt.c libckpt.so readckpt
 	${CC} ${CFLAGS} -o $@ $<
 
 libckpt.so: libckpt.o
@@ -16,8 +16,13 @@ libckpt.o: libckpt.c
 	  ${CC} ${CFLAGS} -fPIC -c $<; \
 	fi
 
+readckpt: readckpt.c
+	${CC} ${CFLAGS} -o $@ $<
+
 clean:
-	rm -f myckpt checkpoint libckpt.o libckpt.so
+	rm -f myckpt checkpoint libckpt.o libckpt.so readckpt
+
+
 
 # check: checkpoint hello 
 # 	rm -f myckpt  # Remove any older 'myckpt' files
