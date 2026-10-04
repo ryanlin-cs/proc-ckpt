@@ -63,7 +63,7 @@ void signal_handler(int signal) {
   //   then when getcontext returns, 'is_restart == 1'.
   is_restart = 1;
 
-  *segment_ptr = (ckpt_segment_t){.start=&context,.is_register_context=1,.data_size=sizeof(context),.name="Context"};
+  *segment_ptr = (ckpt_segment_t){.start=&context,.is_register_context=1,.data_size=sizeof(ucontext_t),.name="Context"};
 
   segment_ptr++;
   assert(proc_self_maps(segment_ptr) == 0);
@@ -132,13 +132,23 @@ void save(const char *filename, ckpt_segment_t segments[]) {
   int fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
   if (fd == -1) {perror("open");}
 
-  while (segments->start != NULL) {
-    if (strstr(segments->name, "[vsyscall]") == NULL && strstr(segments->name, "[vvar]") == NULL && strstr(segments->name, "[vvar_vclock]") == NULL) {
-      write_helper(fd, segments, sizeof(ckpt_segment_t));    // Write header
-      write_helper(fd, segments->start, segments->data_size); // Write data
+  for (; segments->start != NULL; segments++) {
+    // Skip unreadable memory segments
+    if (segments->is_register_context == 0) {
+        if (segments->rwxp[0] != 'r') {
+          continue;
+        }
+        if (strstr(segments->name, "[vvar") != NULL) {
+          continue;
+        }
+        if (strstr(segments->name, "[vsyscall]") != NULL) {
+          continue;
+        }
     }
-    segments++;
-  }
+
+    write_helper(fd, segments, sizeof(ckpt_segment_t));     // Save header
+    write_helper(fd, segments->start, segments->data_size); // Save data
+}
 
   close(fd);
 }

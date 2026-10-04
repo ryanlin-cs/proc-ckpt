@@ -26,16 +26,23 @@ int main(int argc, char *argv[]) {
   int fd = open(filename, O_RDONLY);
   if (fd == -1) {perror("open");}
 
-  // Read stored context first
+  // Read register context first
   ckpt_segment_t segment;
   ucontext_t context;
-  read_helper(fd, &segment, sizeof(ckpt_segment_t)); // Read header
-  read_helper(fd, &context, segment.data_size);      // Read data
-  printf("%p - %p         %s\n", segment.start, segment.end, segment.name);
+  read_helper(fd, &segment, sizeof(ckpt_segment_t));
+  assert(segment.data_size == sizeof(context));		// Ensure that the first header/data is storing the context
+  read_helper(fd, &context, segment.data_size);
+
+  printf("=================================================================\n");
+  printf("Start Address of Context:	%p\n", segment.start);
+  printf("Data Size of Context:		%d\n", segment.data_size);
+  printf("=================================================================\n");
+  printf("Memory Segments\n");
+  printf("-----------------------------------------------------------------\n");
 
   // Read stored memory segments
   while (read_helper(fd, &segment, sizeof(ckpt_segment_t)) == 0) {
-    printf("%p - %p         %s\n", segment.start, segment.end, segment.name);
+    printf("%p-%p         %s\n", segment.start, segment.end, segment.name);
     lseek(fd, segment.data_size, SEEK_CUR);
   }
   close(fd);
