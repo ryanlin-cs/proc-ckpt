@@ -1,9 +1,9 @@
 CC=gcc
 CFLAGS=-g3 -O0
 
-hw1: checkpoint
+build: checkpoint readckpt
 
-checkpoint: ckpt.c libckpt.so readckpt
+checkpoint: ckpt.c libckpt.so
 	${CC} ${CFLAGS} -o $@ $<
 
 libckpt.so: libckpt.o
@@ -18,6 +18,15 @@ libckpt.o: libckpt.c
 
 readckpt: readckpt.c
 	${CC} ${CFLAGS} -o $@ $<
+
+check: build
+	rm -f myckpt				# Remove any older 'myckpt' files
+	./checkpoint ./counting-test 10 &	# Start the target program in the background
+	sleep 2
+	kill -12 `pgrep -n counting-test`	# Send SIGUSR2 to the pid of 'counting-test'
+	sleep 2
+	pkill -9 counting-test			# Terminate'counting-test'
+	./readckpt myckpt			# Inspect the checkpoint image
 
 clean:
 	rm -f myckpt checkpoint libckpt.o libckpt.so readckpt
