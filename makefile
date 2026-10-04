@@ -19,27 +19,24 @@ libckpt.o: libckpt.c
 readckpt: readckpt.c
 	${CC} ${CFLAGS} -o $@ $<
 
-check: build
-	rm -f myckpt				# Remove any older 'myckpt' files
-	./checkpoint ./counting-test 10 &	# Start the target program in the background
+check: build counting-test
+	rm -f myckpt					# Remove any older 'myckpt' files
+	./checkpoint ./counting-test 10 &		# Start the target program in the background
 	sleep 2
-	kill -12 `pgrep -n counting-test`	# Send SIGUSR2 to the pid of 'counting-test'
+	cat /proc/`pgrep -n counting-test`/maps		# Print memory segment of target process
+	kill -12 `pgrep -n counting-test`		# Send SIGUSR2
 	sleep 2
-	pkill -9 counting-test			# Terminate'counting-test'
-	./readckpt myckpt			# Inspect the checkpoint image
+	pkill -9 counting-test				# Terminate target process 
+	./readckpt myckpt				# Inspect the checkpoint image
 
 clean:
-	rm -f myckpt checkpoint libckpt.o libckpt.so readckpt
+	rm -f myckpt checkpoint libckpt.o libckpt.so readckpt counting-test
+
+dist: clean
+	dir=`basename $$PWD` && cd .. && tar czvf $$dir.tar.gz ./$$dir
+	dir=`basename $$PWD` && ls -l ../$$dir.tar.gz
+
+counting-test: counting-test.c 
+	${CC} ${CFLAGS} -rdynamic -o $@ $<
 
 
-
-# check: checkpoint hello 
-# 	rm -f myckpt  # Remove any older 'myckpt' files
-# 	./checkpoint $(word 2,$^)&  # Start the target program in background
-# 	sleep 2
-# 	echo Checkpointing ...
-# 	kill -12 `pgrep -n $(word 2,$^)`  # Send a SIGUSR2 to the pid
-# 	# sleep 2
-# 	# echo Restarting ...
-# 	# pkill -9 $(word 2,$^) # Kill program
-# 	# ./restart myckpt
