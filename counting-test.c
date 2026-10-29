@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   printf("Testing for counting, starting with: %ld\n", num);
   
   long n;
-  for (n = num; n < num + 10; n=n+1) {
+  for (n = num; n < num + 20; n=n+1) {
     printf("The next counting number is: %ld\n", n);
     sleep(1);
   }

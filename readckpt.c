@@ -29,10 +29,13 @@ int main(int argc, char *argv[]) {
   // Read register context first
   ckpt_segment_t segment;
   ucontext_t context;
-  read_helper(fd, &segment, sizeof(ckpt_segment_t));
+  int total_size = 0;
+  total_size += read_helper(fd, &segment, sizeof(ckpt_segment_t));
   assert(segment.data_size == sizeof(context));		// Ensure that the first header/data is storing the context
-  read_helper(fd, &context, segment.data_size);
+  total_size += read_helper(fd, &context, segment.data_size);
 
+  printf("\n\n=================================================================\n");
+  printf("*** Result of reading myckpt ***\n");
   printf("=================================================================\n");
   printf("Start Address of Context:	%p\n", segment.start);
   printf("Data Size of Context:		%d\n", segment.data_size);
@@ -41,11 +44,15 @@ int main(int argc, char *argv[]) {
   printf("-----------------------------------------------------------------\n");
 
   // Read stored memory segments
-  while (read_helper(fd, &segment, sizeof(ckpt_segment_t)) == 0) {
+  for (int rc = read_helper(fd, &segment, sizeof(ckpt_segment_t)); rc != 0; rc = read_helper(fd, &segment, sizeof(ckpt_segment_t))) {
+    total_size += rc + segment.data_size;
     printf("%p-%p         %s\n", segment.start, segment.end, segment.name);
     lseek(fd, segment.data_size, SEEK_CUR);
   }
   close(fd);
+  printf("=================================================================\n");
+  printf("Total Size: %d\n", total_size);
+  printf("=================================================================\n");
 }
 
 int read_helper(int fd, void *start, int len) {
@@ -55,7 +62,7 @@ int read_helper(int fd, void *start, int len) {
     exit(1);
   }
   if (rc == 0) {
-    return -1;
+    return 0;
   }
   while (rc < len) {
     int rc2 = read(fd, (char *)start + rc, len - rc);
@@ -66,5 +73,5 @@ int read_helper(int fd, void *start, int len) {
     rc += rc2;
   }
   assert(rc == len);
-  return 0;
+  return rc;
 }

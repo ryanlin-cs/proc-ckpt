@@ -1,25 +1,25 @@
 CC=gcc
 CFLAGS=-g3 -O0
 
-build: checkpoint readckpt
+build: checkpoint readckpt restart
+
+# Tell the linker to load restart at an address that's unlikely to conflict
+# with the addresses of the process to restore
+restart: restart.c
+	gcc -static \
+	-Wl,-Ttext-segment=5000000 -Wl,-Tdata=5100000 -Wl,-Tbss=5200000 \
+        -g3 -o restart restart.c
 
 checkpoint: ckpt.c libckpt.so
 	${CC} ${CFLAGS} -o $@ $<
 
-libckpt.so: libckpt.o
+libckpt.so: libckpt.c
 	${CC} ${CFLAGS} -shared -fPIC -o $@ $<
-
-libckpt.o: libckpt.c
-	if uname -a | grep -i Darwin; then \
-	  echo '*** This is Darwin/Apple, not GNU: Incompatible constructors';\
-	else \
-	  ${CC} ${CFLAGS} -fPIC -c $<; \
-	fi
 
 readckpt: readckpt.c
 	${CC} ${CFLAGS} -o $@ $<
 
-check: build counting-test
+check: clean build counting-test
 	rm -f myckpt					# Remove any older 'myckpt' files
 	./checkpoint ./counting-test 10 &		# Start the target program in the background
 	sleep 2
@@ -28,9 +28,10 @@ check: build counting-test
 	sleep 2
 	pkill -9 counting-test				# Terminate target process 
 	./readckpt myckpt				# Inspect the checkpoint image
+	./restart
 
 clean:
-	rm -f myckpt checkpoint libckpt.o libckpt.so readckpt counting-test
+	rm -f myckpt checkpoint libckpt.so readckpt counting-test restart
 
 dist: clean
 	dir=`basename $$PWD` && cd .. && tar czvf $$dir.tar.gz ./$$dir
